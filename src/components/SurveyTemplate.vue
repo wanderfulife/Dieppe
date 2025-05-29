@@ -420,9 +420,19 @@ const startSurveyActual = () => {
   let firstQuestionId;
   const posteTravailQId = props.posteTravailQuestionId;
 
+  // If we have a remembered POSTE value, record it in this survey's answers
   if (posteTravailQId && savedPosteTravailValue.value !== null && savedPosteTravailText.value) {
     const posteQuestion = findQuestionById(posteTravailQId);
     if (posteQuestion) {
+        // Record the remembered POSTE value in this survey's answers
+        recordAnswerToState(
+            posteTravailQId,
+            posteQuestion.text, 
+            savedPosteTravailValue.value,
+            savedPosteTravailText.value,
+            savedPosteTravailOptionIndex.value !== -1 ? savedPosteTravailOptionIndex.value : undefined
+        );
+        
         const matchedOption = posteQuestion.options 
             ? posteQuestion.options.find(opt => opt.id === savedPosteTravailValue.value) 
             : null;
@@ -809,7 +819,7 @@ const finishSurvey = async () => {
       ENQUETEUR: capturedEnqueteur,
     };
     
-    // Add POSTE_TRAVAIL if available
+    // Add POSTE_TRAVAIL if available (legacy field for compatibility)
     if (capturedPosteTravail !== null) {
       surveyResult.POSTE_TRAVAIL = capturedPosteTravail;
     }
@@ -826,6 +836,12 @@ const finishSurvey = async () => {
     sortedAnswers.forEach(qa => {
       surveyResult[qa.questionId] = qa.optionId;
     });
+
+    // Ensure POSTE question ID is always saved (even if not explicitly answered in this session)
+    if (props.posteTravailQuestionId && capturedPosteTravail !== null) {
+      // Make sure the POSTE question ID is in the result (this ensures it appears in Excel)
+      surveyResult[props.posteTravailQuestionId] = capturedPosteTravail;
+    }
 
     await addDoc(surveyCollectionRef.value, surveyResult);
     
@@ -853,7 +869,11 @@ const resetSurvey = () => {
   let firstQuestionIdToStart = null;
   const posteTravailQId = props.posteTravailQuestionId;
 
+  // Clear previous answers 
+  answers.value = { question_answers: [] };
+
   if (posteTravailQId && savedPosteTravailValue.value !== null && findQuestionById(posteTravailQId)) {
+    // Record the remembered POSTE value in this new survey's answers
     if (props.rememberPosteTravail && savedPosteTravailValue.value !== null && savedPosteTravailText.value) {
         const posteQuestionForRecord = findQuestionById(posteTravailQId);
         if(posteQuestionForRecord) {
@@ -887,21 +907,17 @@ const resetSurvey = () => {
     } else {
          firstQuestionIdToStart = (props.surveyQuestions && props.surveyQuestions.length > 0) ? props.surveyQuestions[0].id : null;
     }
-  } else {
+  
     if (!props.rememberPosteTravail) {
         savedPosteTravailValue.value = null;
         savedPosteTravailText.value = "";
         savedPosteTravailOptionIndex.value = -1;
     }
+  } else {
+    // No POSTE question configured or no saved value, start from beginning
     if (props.surveyQuestions && props.surveyQuestions.length > 0) {
       firstQuestionIdToStart = props.surveyQuestions[0].id;
     }
-  }
-
-  if (!props.rememberPosteTravail || !posteTravailQId) {
-      answers.value = { question_answers: [] }; 
-  } else {
-      answers.value = { question_answers: [] };
   }
 
   freeTextAnswer.value = "";
