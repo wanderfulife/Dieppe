@@ -27,7 +27,7 @@ const props = defineProps({
 // 🎯 STEP 2: Customize your survey configuration
 const pageTitle = ref('Dieppe'); // Browser tab title
 // Ensure posteTravailQuestionId is defined for the template
-const posteTravailQuestionId = "WORK_STATION"; // 🎯 Change this if your work station question has a different ID
+const posteTravailQuestionId = "POSTE"; // 🎯 Change this if your work station question has a different ID
 const customWelcomeMessage = ref(`
   Bonjour,<br> <br>pour mieux connaître les usagers de la gare de Dieppe,<br> la SNCF souhaiterait en savoir plus sur vos pratiques d'accès à la gare et en particulier l'utilisation du stationnement autour de la gare.<br><br> Auriez-vous quelques secondes à nous accorder ?
 `); // HTML welcome message

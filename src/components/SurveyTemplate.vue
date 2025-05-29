@@ -38,7 +38,6 @@
               v-model="selectedCommune"
               v-model:postalCodePrefix="postalCodePrefix"
             />
-            <p v-if="selectedCommune">Sélectionnée: {{ selectedCommune }}</p>
             <button
               @click="handleCommuneSelection"
               class="btn-next"

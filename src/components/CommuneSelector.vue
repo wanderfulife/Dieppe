@@ -68,41 +68,75 @@ const selectCommune = (item) => {
   if (item && item.COMMUNE && item['CODE INSEE']) {
     communeInput.value = item.COMMUNE;
     postalCodeInput.value = item['CODE POSTAL'] ? item['CODE POSTAL'].toString() : '';
+    
     emit('update:modelValue', `${item.COMMUNE} - ${item['CODE INSEE']}`);
     emit('update:postalCodePrefix', postalCodeInput.value);
+    
     showDropdown.value = false;
   }
 };
 
 watch(() => props.modelValue, (newVal) => {
-  if (newVal) {
-    const [commune] = newVal.split(' - ');
-    communeInput.value = commune || newVal;
+  if (newVal && typeof newVal === 'string') {
+    const parts = newVal.split(' - ');
+    communeInput.value = parts[0] || '';
+    if (parts.length > 1 && !postalCodeInput.value) {
+        const matchedCommune = insee.value.find(i => i['CODE INSEE'] === parts[1]);
+        if (matchedCommune && matchedCommune['CODE POSTAL']) {
+            postalCodeInput.value = matchedCommune['CODE POSTAL'].toString();
+        }
+    }
+
+  } else if (!newVal) {
+    communeInput.value = '';
   }
 });
 
 watch(() => props.postalCodePrefix, (newVal) => {
   if (newVal && newVal !== postalCodeInput.value) {
     postalCodeInput.value = newVal;
-    search();
+  } else if (!newVal) {
+    postalCodeInput.value = '';
   }
 });
 </script>
 
 <style scoped>
+.form-group {
+  position: relative; /* Needed for absolute positioning of the dropdown */
+}
+
 .commune-dropdown {
+  position: absolute;
+  width: 100%; /* Make dropdown same width as input */
   max-height: 200px;
   overflow-y: auto;
-  border: 1px solid #ccc;
+  border: 1px solid white;
+  background-color: #333; /* Match input background */
+  color: white; /* Match input text color */
+  z-index: 1000; /* Ensure it's above other elements */
+  border-top: none; /* Remove top border if it directly touches the input above */
+  border-radius: 0 0 5px 5px; /* Rounded bottom corners */
+  /* Adjust top position to be right under the second input field */
+  /* This might need fine-tuning depending on exact input heights and margins */
+  top: calc(100% - 10px); /* Attempt to position below the last input, adjust 10px as needed */
+  left: 0;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Optional: add a subtle shadow */
 }
 
 .commune-option {
-  padding: 5px;
+  padding: 10px; /* Increased padding */
   cursor: pointer;
+  color: white; /* Ensure text is white */
+  border-bottom: 1px solid #444; /* Subtle separator for options */
+}
+
+.commune-option:last-child {
+  border-bottom: none; /* No border for the last item */
 }
 
 .commune-option:hover {
-  background-color: #f0f0f0;
+  background-color: #4a5a83; /* A dark blue hover, consistent with SurveyTemplate */
 }
 
 .form-control {

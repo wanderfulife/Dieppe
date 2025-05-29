@@ -2,6 +2,17 @@
 // Basé sur le questionnaire ARF-DE-GEN-NTE pour l'analyse d'accès et stationnement en gare
 
 export const templateSurveyQuestions = [
+
+    {
+        id: "POSTE",
+        text: "POSTE",
+        type: 'singleChoice',
+        options: [
+            { id: 1, text: "Parvis", next: "QCo0" },
+            { id: 2, text: "BV", next: "QCo0" },
+            { id: 3, text: "Quais", next: "QCo0" }
+        ]
+    },
     // 🚉 Question de filtrage initial (peut être pré-remplie par l'enquêteur)
     {
         id: "QCo0",

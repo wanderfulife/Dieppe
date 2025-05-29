@@ -101,14 +101,11 @@ const fetchAdminData = async () => {
 const downloadData = async () => {
   try {
     const querySnapshot = await getDocs(surveyCollectionRef);
-
-    // Store both document data and ID
     const rawData = querySnapshot.docs.map((doc) => ({
       ...doc.data(),
-      firestore_id: doc.id, // Add the Firestore document ID
+      firestore_id: doc.id,
     }));
 
-    // Log raw data for debugging
     console.log("Raw survey data from Firestore:", rawData);
 
     // Define core headers that should appear first and in this order
@@ -119,17 +116,14 @@ const downloadData = async () => {
       "JOUR",
       "HEURE_DEBUT",
       "HEURE_FIN",
-      "POSTE_TRAVAIL"
     ];
 
-    // Define keys to be completely excluded from the export
-    const excludedKeys = ["firestore_id", "firebase_timestamp", "S1"];
-
-    // Get the survey question order from the IDF survey questions
+    // Add "POSTE_TRAVAIL" to excludedKeys to prevent it from appearing as a separate column
+    const excludedKeys = ["firestore_id", "firebase_timestamp", "S1", "POSTE_TRAVAIL"];
     const surveyQuestionOrder = surveyQuestions.map(q => q.id);
-    
-    // Collect all keys that exist in the data
-    let allKeys = new Set(coreHeaders);
+    const posteTravailActualId = "POSTE"; // As specified by user
+
+    let allKeys = new Set();
     rawData.forEach(docData => {
       Object.keys(docData).forEach(key => {
         if (!excludedKeys.includes(key)) {
@@ -138,110 +132,65 @@ const downloadData = async () => {
       });
     });
 
-    // Create ordered headers: core headers first, then survey questions in order with their related fields grouped together
-    const surveyHeaders = [];
+    // Build the header order
+    let orderedHeaders = [...coreHeaders];
     
-    // Auto-detect work station question by finding which question stores data in POSTE_TRAVAIL field
-    let detectedWorkStationQuestionId = null;
-    if (allKeys.has("POSTE_TRAVAIL")) {
-      // Find which survey question has values that match POSTE_TRAVAIL values
-      const posteTravailValues = new Set();
-      rawData.forEach(docData => {
-        if (docData.POSTE_TRAVAIL) {
-          posteTravailValues.add(docData.POSTE_TRAVAIL);
-        }
-      });
-      
-      // Check each survey question to see if its values match POSTE_TRAVAIL values
-      for (const questionId of surveyQuestionOrder) {
-        if (!coreHeaders.includes(questionId) && allKeys.has(questionId)) {
-          const questionValues = new Set();
-          rawData.forEach(docData => {
-            if (docData[questionId]) {
-              questionValues.add(docData[questionId]);
-            }
-          });
-          
-          // If question values match POSTE_TRAVAIL values, this is likely the work station question
-          const matchingValues = [...posteTravailValues].filter(val => questionValues.has(val));
-          if (matchingValues.length > 0 && matchingValues.length >= posteTravailValues.size * 0.8) {
-            detectedWorkStationQuestionId = questionId;
-            break;
-          }
-        }
-      }
+    // Add the "POSTE" question (if it exists in data and is the designated one)
+    if (allKeys.has(posteTravailActualId) && !orderedHeaders.includes(posteTravailActualId)) {
+      orderedHeaders.push(posteTravailActualId);
     }
-    
-    // Process each survey question and add related fields immediately after
+
+    // Add remaining survey questions in their defined order, excluding already added "POSTE"
     surveyQuestionOrder.forEach(questionId => {
-      // Skip the detected work station question ID since it's handled as POSTE in core headers
-      if (questionId === detectedWorkStationQuestionId) {
-        return;
-      }
-      
-      if (allKeys.has(questionId) && !coreHeaders.includes(questionId)) {
-        // Add the main question field
-        surveyHeaders.push(questionId);
+      if (allKeys.has(questionId) && !orderedHeaders.includes(questionId) && !excludedKeys.includes(questionId)) {
+        orderedHeaders.push(questionId);
         
-        // Check for related commune fields and add them immediately after
+        // Add related commune fields immediately after
         const codeInseeField = `${questionId}_CODE_INSEE`;
         const communeLibreField = `${questionId}_COMMUNE_LIBRE`;
-        
-        if (allKeys.has(codeInseeField)) {
-          surveyHeaders.push(codeInseeField);
+        if (allKeys.has(codeInseeField) && !orderedHeaders.includes(codeInseeField)) {
+          orderedHeaders.push(codeInseeField);
         }
-        
-        if (allKeys.has(communeLibreField)) {
-          surveyHeaders.push(communeLibreField);
+        if (allKeys.has(communeLibreField) && !orderedHeaders.includes(communeLibreField)) {
+          orderedHeaders.push(communeLibreField);
         }
       }
     });
-    
-    // Collect remaining headers that weren't processed above
-    const processedHeaders = new Set([...coreHeaders, ...surveyHeaders]);
-    const remainingHeaders = Array.from(allKeys)
-      .filter(key => !processedHeaders.has(key) && !excludedKeys.includes(key))
-      .sort(); // Sort remaining headers alphabetically
 
-    // Rename POSTE_TRAVAIL to POSTE in the header order
-    const headerOrder = [...coreHeaders, ...surveyHeaders, ...remainingHeaders].map(header => 
-      header === "POSTE_TRAVAIL" ? "POSTE" : header
-    );
+    // Add any other keys that might exist but weren't in core or surveyQuestionOrder (e.g., old POSTE_TRAVAIL if it's still in some documents)
+    // and ensure they are not excluded or already added.
+    const remainingKeys = Array.from(allKeys).filter(
+      key => !orderedHeaders.includes(key) && !excludedKeys.includes(key)
+    ).sort();
+    orderedHeaders = [...orderedHeaders, ...remainingKeys];
+    
+    // Final header list for the sheet
+    const finalHeaderOrder = orderedHeaders;
 
     const data = rawData.map((docData) => {
       const processedData = {};
-      // Ensure all headers are present in each row, with empty string for missing ones
-      for (const header of headerOrder) {
-        // Double check not to include excluded keys, though headerOrder should already be filtered
-        if (!excludedKeys.includes(header)) {
-            // Map POSTE back to POSTE_TRAVAIL for data lookup
-            const dataKey = header === "POSTE" ? "POSTE_TRAVAIL" : header;
-            let value = docData[dataKey] !== undefined ? docData[dataKey] : "";
-            
-            // Handle arrays (from multiple choice questions) by converting to comma-separated string
-            if (Array.isArray(value)) {
-                value = value.join(", ");
-            }
-            
-            processedData[header] = value;
+      finalHeaderOrder.forEach(header => {
+        if (!excludedKeys.includes(header)) { // Should be redundant as finalHeaderOrder is filtered
+          let value = docData[header] !== undefined ? docData[header] : "";
+          if (Array.isArray(value)) {
+            value = value.join(", ");
+          }
+          processedData[header] = value;
         }
-      }
+      });
       return processedData;
     });
 
-    // Log processed data for debugging
     console.log("Processed data for Excel:", data);
+    console.log("Final Header Order for Excel:", finalHeaderOrder);
 
-    // Create workbook and add main worksheet
     const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(data, { header: headerOrder });
+    const worksheet = XLSX.utils.json_to_sheet(data, { header: finalHeaderOrder });
 
-    // Set column widths
-    const colWidths = headerOrder.map(() => ({ wch: 20 }));
+    const colWidths = finalHeaderOrder.map(() => ({ wch: 20 }));
     worksheet["!cols"] = colWidths;
     XLSX.utils.book_append_sheet(workbook, worksheet, "Survey Data");
 
-    // Use a timestamp in the filename to avoid overwriting
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     XLSX.writeFile(workbook, `${props.activeFirebaseCollectionName}_Survey_Data_${timestamp}.xlsx`);
 
