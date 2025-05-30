@@ -666,7 +666,7 @@ const handleGareInput = () => {
 const nextQuestion = async (selectedOption = null) => {
   let nextId = getNextQuestionId(currentQuestion.value, selectedOption);
 
-  // NEW: Check if the target question has a condition and skip it if not met
+  // Check if the target question has a condition and skip it if not met
   while (nextId && nextId !== 'end') {
     const nextQObject = findQuestionById(nextId);
     if (nextQObject && nextQObject.condition) {
@@ -676,33 +676,21 @@ const nextQuestion = async (selectedOption = null) => {
         
         let fallbackNextId = null;
         
-        // Special logic for S4 - route based on bike usage
-        if (nextId === 'S4') {
-          const s2Answer = getAnswerById('S2');
-          const s3Answer = getAnswerById('S3');
-          const usesBike = (s2Answer && s2Answer.optionId === 1) || (s3Answer && s3Answer.optionId === 1);
-          fallbackNextId = usesBike ? 'S5' : 'S5bis';
+        // First, try to use the question's fallbackNext property
+        if (nextQObject.fallbackNext) {
+          fallbackNextId = nextQObject.fallbackNext;
         } else {
-          // First, try to use the question's fallbackNext property
-          if (nextQObject.fallbackNext) {
-            fallbackNextId = nextQObject.fallbackNext;
-          } else {
-            // Try to get the next question from the skipped question
-            fallbackNextId = getNextQuestionId(nextQObject, null);
-            
-            // If that also returns null, try to find the next question in sequence
-            if (!fallbackNextId) {
-              const currentIndex = props.surveyQuestions.findIndex(q => q.id === nextId);
-              if (currentIndex !== -1 && currentIndex < props.surveyQuestions.length - 1) {
-                fallbackNextId = props.surveyQuestions[currentIndex + 1].id;
-              } else {
-                // Final safety fallback - go to S13 if we're not already there
-                if (nextId !== 'S13') {
-                  fallbackNextId = 'S13';
-                } else {
-                  fallbackNextId = 'end';
-                }
-              }
+          // Try to get the next question from the skipped question
+          fallbackNextId = getNextQuestionId(nextQObject, null);
+          
+          // If that also returns null, try to find the next question in sequence
+          if (!fallbackNextId) {
+            const currentIndex = props.surveyQuestions.findIndex(q => q.id === nextId);
+            if (currentIndex !== -1 && currentIndex < props.surveyQuestions.length - 1) {
+              fallbackNextId = props.surveyQuestions[currentIndex + 1].id;
+            } else {
+              // Final safety fallback - end the survey if we can't find the next question
+              fallbackNextId = 'end';
             }
           }
         }
