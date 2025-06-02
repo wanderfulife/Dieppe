@@ -216,14 +216,14 @@ export const templateSurveyQuestions = [
         id: "QNV3A",
         text: "Précisez de quelle rue de Dieppe :",
         type: 'street',
-        next: "end"
+        next: "Autre"
     },
 
     {
         id: "QNV3_AUTRE",
         text: "Veuillez préciser la commune :",
         type: 'commune',
-        next: "end"
+        next: "Autre"
     },
 
     // 🚄 SECTION VOYAGEURS
@@ -237,19 +237,17 @@ export const templateSurveyQuestions = [
             { id: 3, text: "Longueville-sur-Scie", next: "QP2" },
             { id: 4, text: "Auffay", next: "QP2" },
             { id: 5, text: "Saint-Victor l'Abbaye", next: "QP2" },
-            { id: 6, text: "Saint-Maclou-de-Folleville", next: "QP2" },
-            { id: 7, text: "Clères", next: "QP2" },
-            { id: 8, text: "Montville", next: "QP2" },
-            { id: 9, text: "Malaunay-Le Houlme", next: "QP2" },
-            { id: 10, text: "Le Houlme", next: "QP2" },
-            { id: 11, text: "Maromme", next: "QP2" },
-            { id: 12, text: "Notre-Dame-de-Bondeville", next: "QP2" },
-            { id: 13, text: "Rouen Rive-Droite", next: "QP2" },
-            { id: 14, text: "Rouen", next: "QP2" },
-            { id: 15, text: "Autre gare", next: "QP1_AUTRE" }
+            { id: 6, text: "Clères", next: "QP2" },
+            { id: 7, text: "Montville", next: "QP2" },
+            { id: 8, text: "Malaunay-Le Houlme", next: "QP2" },
+            { id: 9, text: "Le Houlme", next: "QP2" },
+            { id: 10, text: "Maromme", next: "QP2" },
+            { id: 11, text: "Rouen Rive-Droite", next: "QP2" },
+            { id: 12, text: "Autre gare", next: "QP1_AUTRE" }
         ]
     },
 
+ 
     {
         id: "QP1_AUTRE",
         text: "Veuillez préciser votre gare de destination :",
@@ -471,11 +469,11 @@ export const templateSurveyQuestions = [
         text: "Quel est le motif de votre voyage ?",
         type: 'singleChoice',
         options: [
-            { id: 1, text: "Déplacement Domicile-Travail habituel", next: "end" },
-            { id: 2, text: "Déplacements professionnels occasionnel", next: "end" },
-            { id: 3, text: "Loisirs, vacances, visite d'un proche ou ami", next: "end" },
-            { id: 4, text: "Déplacement Domicile-Études (y compris stage)", next: "end" },
-            { id: 5, text: "Démarches administratives, médicales ou achat", next: "end" },
+            { id: 1, text: "Déplacement Domicile-Travail habituel", next: "Autre" },
+            { id: 2, text: "Déplacements professionnels occasionnel", next: "Autre" },
+            { id: 3, text: "Loisirs, vacances, visite d'un proche ou ami", next: "Autre" },
+            { id: 4, text: "Déplacement Domicile-Études (y compris stage)", next: "Autre" },
+            { id: 5, text: "Démarches administratives, médicales ou achat", next: "Autre" },
             { id: 6, text: "Autres", next: "QP6_AUTRE" }
         ]
     },
@@ -485,6 +483,13 @@ export const templateSurveyQuestions = [
         text: "Veuillez préciser l'autre motif :",
         type: 'freeText',
         freeTextPlaceholder: "Décrivez le motif de votre voyage...",
+        next: "Autre"
+    },
+    {
+        id: "Autre",
+        text: "Autre information",
+        type: 'freeText',
+        freeTextPlaceholder: "Éléments à rajouter",
         next: "end"
     }
 ];
